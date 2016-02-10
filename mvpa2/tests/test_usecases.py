@@ -661,7 +661,11 @@ def test_permute_superord_surely_correct():
 
     ds3x2 = _get_superord_dataset()
     # Matteo likes it simple(r)
-    ds2x2 = ds3x2.select(sadict=dict(superord=['super0', 'super1']))
+    #ds2x2 = ds3x2.select(sadict=dict(superord=['super0', 'super1']))
+    # Matteo likes it even simpler
+    from mvpa2.datasets import Dataset
+    ds2x2 = Dataset(np.empty((2 * 2 * 2)), sa={'superord': ['A', 'B'] * 4,
+                                               'subord': range(4) * 2})
 
     # mvpa2.seed(1)
     # NOTE:  may be that is not what we actually wanted!!!
@@ -671,21 +675,25 @@ def test_permute_superord_surely_correct():
     ## so we split based on superord
         FactorialPartitioner(NFoldPartitioner(attr="subord"), attr='superord'),
         AttributePermutator('subord', strategy='uattrs', limit='partitions', count=1000),
-        AttributePermutator('subord', strategy='uattrs', count=10000),
-        OnlyUniquePermutations(['subord']), # , 'partitions']),
+        #AttributePermutator('subord', strategy='uattrs', count=1000),
+        OnlyUniquePermutations(['subord', 'partitions']),
     ], space='partitions')
 
     all_perms2x2 = list(part.generate(ds2x2))
-    assert_equal(len(all_perms2x2), 16)
+    assert_equal(len(all_perms2x2), 16) # 2!(training) * 2!(testing) * 4(CV folds)
 
     all_perms3x2 = list(part.generate(ds3x2))
-    assert_equal(len(all_perms3x2), 36 * 8)  # 3!(training) * 3! (testing) * 8 (# CV folds)
+    assert_equal(len(all_perms3x2), 6 * 6 * 8)  # 3!(training) * 3! (testing) * 8 (# CV folds)
 
-    # Let's generate our 4x2 design
-    nc = 5
-    from mvpa2.datasets import Dataset
-    ds = Dataset(np.empty((nc * 4 * 2, 1)), sa={'subord': list(range(8))*nc})
-    ds.sa['superord'] = ds.sa.subord // 4
+    # in general the following formula holds
+    # nperms = (nsubordinate * nsuperordinate - nsuperordinate)! *
+    #          nsuperordinate! * (nsubordinate ** nsuperordinate)
 
-    all_perms4x2 = list(part.generate(ds))
-    assert_equal(len(all_perms4x2), 240 * 2 * 16)  # 6! (training) * 2! (testing) * 16 folds
+    ## Let's generate our 4x2 design
+    #nc = 5
+    #from mvpa2.datasets import Dataset
+    #ds = Dataset(np.empty((nc * 4 * 2, 1)), sa={'subord': list(range(8))*nc})
+    #ds.sa['superord'] = ds.sa.subord // 4
+
+    #all_perms4x2 = list(part.generate(ds))
+    #assert_equal(len(all_perms4x2), 720 * 2 * 16)  # 6! (training) * 2! (testing) * 16 folds
